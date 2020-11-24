@@ -1,16 +1,11 @@
-export function h(type, { className }, children) {
-  if (typeof type === 'string') {
-    const el = document.createElement(type)
-    if (className) {
-      el.classList.add(className)
-    }
-    if (typeof children === 'object') {
-      children.forEach(element => {
-        el.appendChild(element)
-      })
-    } else {
-      el.textContent = children
-    }
-    return el
+export function h(type, attrs, children) {
+  return new VNode(type, attrs, children)
+}
+
+class VNode {
+  constructor(tag, data, children) {
+    this.type = tag
+    this.data = data
+    this.children = children
   }
 }

@@ -1,4 +1,4 @@
-import Vue, { h } from './lib'
+import Vue from './lib'
 
 const app = new Vue({
   el: '#app',
@@ -9,12 +9,12 @@ const app = new Vue({
       age: 18
     }
   },
-  render () {
+  render (h) {
     return h('div', {
       className: 'container'
     }, [
-      h('p', {}, this.$data.message),
-      h('p', {}, this.$data.user.name)
+      h('p', {}, this.message),
+      h('p', {}, this.user.name)
     ])
   }
 })
@@ -22,7 +22,7 @@ const app = new Vue({
 app.mount()
 
 setTimeout(() => {
-  app.$data.message += app.$data.message
+  app.message += app.message
 }, 1000)
 
 // app.$data.user.name = 'zm'
