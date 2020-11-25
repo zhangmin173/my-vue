@@ -1,17 +1,46 @@
 import Dep from "./dep"
 import { isObject } from "./utils"
 
+const arrayProto = Array.prototype
+const arrayMethods = Object.create(arrayProto)
+const proxyMethods = ['push', 'pop']
+
+const proxyArrayMethods = () => {
+  proxyMethods.forEach(method => {
+    const originMethod = arrayProto[method]
+    Object.defineProperty(arrayMethods, method, {
+      value: function (...args) {
+        const result = originMethod.apply(this, args)
+        this.__ob__.dep.notify()
+        return result
+      }
+    })
+  })
+}
+proxyArrayMethods()
+
 export default class Observe {
   constructor(value) {
     this.value = value
     this.dep = new Dep()
 
+    Object.defineProperty(value, '__ob__', {
+      value: this
+    })
     if (Array.isArray(value)) {
       // 如果是数组
+      value.__proto__ = arrayMethods
+      this.observeArray(value)
     } else {
       // 否则是对象
       this.walk(value)
     }
+  }
+
+  observeArray(array) {
+    array.forEach(item => {
+      observe(item)
+    })
   }
 
   walk(obj) {
@@ -25,7 +54,13 @@ export default class Observe {
 export function observe(data) {
   if (!isObject(data)) return
 
-  return new Observe(data)
+  let ob
+  if (data.__ob__) {
+    ob = data.__ob__
+  } else {
+    ob = new Observe(data)
+  }
+  return ob
 }
 
 function defineReactive(obj, key, value) {
@@ -35,7 +70,7 @@ function defineReactive(obj, key, value) {
 
   Object.defineProperty(obj, key, {
     get () {
-      console.log(key + ': get')
+      // console.log(key + ': get')
       if (Dep.target) {
         dep.depend()
         if (childOb) {
@@ -46,7 +81,7 @@ function defineReactive(obj, key, value) {
     },
     set (newValue) {
       if (newValue === value) return
-      console.log(key + ': set')
+      // console.log(key + ': set')
       value = newValue
       dep.notify()
     }

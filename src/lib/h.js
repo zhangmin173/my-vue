@@ -6,6 +6,11 @@ class VNode {
   constructor(tag, data, children) {
     this.type = tag
     this.data = data
-    this.children = children
+    if (Array.isArray(children)) {
+      this.children = children
+    } else {
+      this.text = children
+    }
+    this.key = data && data.key
   }
 }

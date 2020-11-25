@@ -1,6 +1,7 @@
 import Watcher from './watcher'
 import Observe from './observe'
 import { h } from './h'
+import { patch } from './patch'
 
 export default class Vue {
   constructor (options) {
@@ -16,8 +17,14 @@ export default class Vue {
     this.proxy(vm, options.data)
   }
 
-  __patch__(a, b) {
-    console.log(a, b)
+  __patch__(prevVnode, vNode, vm) {
+    if (prevVnode.nodeType) {
+      // 首次渲染
+      return patch(null, vNode, vm.$el)
+    } else {
+      // 更新
+      return patch(prevVnode, vNode, vm.$el)
+    }
   }
 
   // 渲染函数
@@ -41,9 +48,9 @@ export default class Vue {
 
     if (!prevVnode) {
       // 之前的vnode不存在，则是初始化
-      vm.$el = vm.__patch__(vm.$el, vnode)
+      vm.$el = vm.__patch__(prevEl, vnode, vm)
     } else {
-      vm.$el = vm.__patch__(prevVnode, vnode)
+      vm.$el = vm.__patch__(prevVnode, vnode, vm)
     }
   }
 

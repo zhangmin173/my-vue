@@ -1,8 +1,10 @@
 import { pushTarget, popTarget } from './dep'
 
+let uid = 0
 export default class Watcher {
   constructor (vm, expOrFun) {
     this.vm = vm
+    this.id = ++uid
     vm._watchers.push(this)
 
     if (typeof expOrFun === 'function') {
@@ -22,11 +24,16 @@ export default class Watcher {
     this.value = this.get()
   }
 
+  run () {
+    console.log('watcher run', this.id)
+    this.value = this.get()
+  }
+
   get() {
     // 入栈
     pushTarget(this)
     const vm = this.vm
-    const value = this.getter.call(vm, vm)
+    const value = this.getter.call(vm)
     // 出栈
     popTarget()
     this.cleanupDeps()
@@ -39,7 +46,7 @@ export default class Watcher {
       this.newDepIds.add(id)
       this.newDeps.push(dep)
       if (!this.depIds.has(id)) {
-        dep.depend()
+        dep.addSub(this)
       }
     }
   }
@@ -71,6 +78,89 @@ export default class Watcher {
   }
 
   update() {
-    this.value = this.get()
+    queueWatcher(this)
   }
 }
+
+function resetSchedulerState () {
+  index = queue.length = 0
+  has = new Set()
+  waiting = flushing = false
+}
+
+const queue = []
+let has = new Set()
+
+let flushing = false
+let waiting = false
+// 当前执行下标
+let index = 0
+
+function queueWatcher(watcher) {
+  if (!has.has(watcher.id)) {
+    has.add(watcher.id)
+    if (!flushing) {
+      // 队列未执行
+      queue.push(watcher)
+    } else {
+      // 队列已执行
+      // watcher 创建顺序，总是父级id最小
+      let i = queue.length - 1
+      while (i > index && queue[i].id > watcher.id) {
+        i--
+      }
+      // 当前watcher插入的位置为 未执行的watcher队列中 比当前watcher小的后面
+      queue.splice(i + 1, 0, watcher)
+    }
+
+    if (!waiting) {
+      // 未在等待状态，则执行一次
+      waiting = true
+      nextTick(flushingQueue)
+    }
+  }
+}
+
+function flushingQueue() {
+  flushing = true
+  // 排序，保证id最小的先执行
+  queue.sort((a, b) => a.id - b.id)
+
+  let watcher, id
+
+  for (index = 0; index < queue.length; index++) {
+    watcher = queue[index]
+    id = watcher.id
+    has.delete(id)
+    watcher.run()
+  }
+
+  resetSchedulerState()
+}
+
+const nextTick = (function () {
+  const callbacks = []
+  let pending = false,
+    timerFunc
+
+  function nextTicker() {
+    pending = false
+    const cbs = callbacks.slice(0)
+    callbacks.length = 0
+    for (let i = 0; i < cbs.length; i++) {
+      cbs[i]()
+    }
+  }
+
+  timerFunc = () => {
+    Promise.resolve().then(nextTicker)
+  }
+
+  return function(cb) {
+    callbacks.push(cb)
+    if (!pending) {
+      pending = true
+      timerFunc()
+    }
+  }
+})()
